@@ -2,6 +2,7 @@ package board;
 
 import java.util.ArrayList;
 import java.util.Scanner;
+
 import board.util.MyUtil;
 
 public class Board {
@@ -12,11 +13,13 @@ public class Board {
 	Scanner sc = new Scanner(System.in);
 	
 	Member loginedMember = null;
-	int no = 4;
+	int articleNo = 4;
+	int memberNo = 3;
 	
 	public Board() {
 		makeTestData();
 	}
+	
 	public void runBoard() {		
 
 		while(true) {
@@ -36,7 +39,9 @@ public class Board {
 			}
 			else if (cmd.equals("add")) {
 
-				addArticle();
+				if(isLoginCheck() == true) {
+					addArticle();
+				}
 				
 			} 
 			else if (cmd.equals("list")) {
@@ -73,7 +78,26 @@ public class Board {
 				login();
 				
 			}
+			else if (cmd.equals("logout")) {
+				
+				logout();
+				
+			}
 		}	
+	}
+	
+	private boolean isLoginCheck() {
+		if(loginedMember == null) {
+			System.out.println("로그인이 필요한 기능입니다.");
+			return false;
+		}
+		
+		return true;
+	}
+	
+	private void logout() {
+		loginedMember = null;
+		System.out.println("로그아웃 되셨습니다.");
 	}
 	
 	private void login() {
@@ -110,28 +134,34 @@ public class Board {
 		System.out.print("닉네임을 입력해주세요 : ");
 		String nickname = sc.nextLine();
 		
-		Member member = new Member(loginId, loginPw, nickname);
+		Member member = new Member(memberNo, loginId, loginPw, nickname);
 		members.add(member);
 		
 		System.out.println("회원가입이 완료되었습니다.");
 	}
 	
 	private void makeTestData() {
-		articles.add(new Article(1, "예시제목1", "내용1", MyUtil.getCurrentDate("yyyy-MM-dd"), "익명", 0));
-		articles.add(new Article(2, "예시제목2", "내용2", MyUtil.getCurrentDate("yyyy-MM-dd"), "익명", 0));
-		articles.add(new Article(3, "예시제목3", "내용3", MyUtil.getCurrentDate("yyyy-MM-dd"), "익명", 0));
+		String currentDate = MyUtil.getCurrentDate("yyyy-MM-dd");
+		
+		articles.add(new Article(1, "예시제목1", "내용1", currentDate, 1, 0));
+		articles.add(new Article(2, "예시제목2", "내용2", currentDate, 2, 0));
+		articles.add(new Article(3, "예시제목3", "내용3", currentDate, 1, 0));
+		
+		members.add(new Member(1, "hong123", "h1234", "홍길동"));
+		members.add(new Member(2, "lee123", "1234", "이순신"));
+		
+		loginedMember = members.get(0);
 	}
 	
 	private void read() {
 		System.out.print("상세보기할 게시물 번호");
 		int targetNo = Integer.parseInt(sc.nextLine());
 		
-		int targetIndex = getIndexOfArticleNo(targetNo);
+		Article article = getArticleByNo(targetNo);
 		
-		if(targetIndex == -1) {
+		if(article == null) {
 			System.out.println("없는 게시물입니다.");
 		} else {
-			Article article = articles.get(targetIndex);
 			
 			article.hit++;
 			
@@ -141,7 +171,7 @@ public class Board {
 			System.out.println("=========================");
 			System.out.println("내용 : " + article.body);
 			System.out.println("=========================");
-			System.out.println("작성자 : " + article.writer);
+			System.out.println("작성자 : " + article.nickname);
 			System.out.println("등록날짜 : " + article.regDate);
 			System.out.println("조회수 : " + article.hit);
 			System.out.println("=========================");
@@ -167,12 +197,12 @@ public class Board {
 		System.out.print("삭제할 게시물 번호:");
 		int targetNo = Integer.parseInt(sc.nextLine());
 
-		int targetIndex = getIndexOfArticleNo(targetNo);
+		Article article = getArticleByNo(targetNo);
 
-		if(targetIndex == -1) {
+		if(article == null) {
 			System.out.println("없는 게시물입니다.");
 		} else {
-			articles.remove(targetIndex);
+			articles.remove(article);
 			System.out.println("삭제가 완료되었습니다.");
 
 			list(articles);
@@ -183,9 +213,9 @@ public class Board {
 		System.out.print("수정할 게시물 번호:");
 		int targetNo = Integer.parseInt(sc.nextLine());
 
-		int targetIndex = getIndexOfArticleNo(targetNo);
+		Article article = getArticleByNo(targetNo);
 
-		if(targetIndex == -1) {
+		if(article == null) {
 			System.out.println("없는 게시물입니다.");
 		} else {
 			System.out.print("새제목 : ");
@@ -193,8 +223,8 @@ public class Board {
 			System.out.print("새내용 : ");
 			String body = sc.nextLine();
 
-			Article article = new Article(targetNo, title, body, "2021.11.11", "익명", 0);
-			articles.set(targetIndex, article);
+			article.title = title;
+			article.body = body;
 			
 			System.out.println("수정이 완료되었습니다.");
 
@@ -209,11 +239,11 @@ public class Board {
 		String body = sc.nextLine();
 		
 		String currentDate = MyUtil.getCurrentDate("yyyy-MM-dd");
-		Article article = new Article(no, title, body, currentDate, "익명", 0);
+		Article article = new Article(articleNo, title, body, currentDate, loginedMember.id, 0);
 		articles.add(article);
 
 		System.out.println("게시물이 저장되었습니다.");
-		no++;
+		articleNo++;
 	}
 	
 	public void printHelp() {
@@ -227,17 +257,48 @@ public class Board {
 		System.out.println("login : 로그인");
 	}
 	
-	public int getIndexOfArticleNo(int targetNo) {
+	
+	public Article getArticleByNo(int targetNo) {
+		
+		Article targetArticle = null;
 		
 		for(int i = 0; i < articles.size(); i++) {
-			Article article = articles.get(i);
-			if(article.id == targetNo) {
-				return i;
+			Article currentArticle = articles.get(i);
+			if(currentArticle.id == targetNo) {
+				targetArticle = currentArticle;
+				break;
 			}
 		}
 		
-		return -1;
+		targetArticle = setArticleNickname(targetArticle);
 		
+		return targetArticle;
+		
+	}
+	
+	private Article setArticleNickname(Article article) {
+		
+		if(article != null) {
+			Member member = getMemberByMemberNo(article.memberId);
+			article.nickname = member.nickname;
+		}
+		
+		return article;
+	}
+	
+	private Member getMemberByMemberNo(int memberId) {
+		
+		Member targetMember = null;
+		
+		for(int i=0; i<members.size(); i++) {
+			Member currentMember = members.get(i);
+			if(memberId == currentMember.id) {
+				targetMember = currentMember;
+				break;
+			}
+		}
+		
+		return targetMember;
 	}
 
 	public void list(ArrayList<Article> list) {
@@ -246,7 +307,7 @@ public class Board {
 
 			System.out.println("번호 : " + article.id);
 			System.out.println("제목 : " + article.title);
-			System.out.println("작성자 : " + article.writer);
+			System.out.println("작성자 : " + article.memberId);
 			System.out.println("등록날짜 : " + article.regDate);
 			System.out.println("조회수 : " + article.hit);
 			System.out.println("=========================");					

@@ -6,16 +6,17 @@ public class Article {
 	String title;
 	String body;
 	String regDate;
-	String writer;
+	int memberId;
+	String nickname;
 	int hit;
 	
-	public Article(int id, String title, String body, String regDate, String writer, int hit) {
+	public Article(int id, String title, String body, String regDate, int memberId, int hit) {
 		super();
 		this.id = id;
 		this.title = title;
 		this.body = body;
 		this.regDate = regDate;
-		this.writer = writer;
+		this.memberId = memberId;
 		this.hit = hit;
 	}
 }
